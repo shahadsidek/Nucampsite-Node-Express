@@ -24,7 +24,8 @@ const userSchema = new Schema({
     admin: {
         type: Boolean,
         default: false
-    }
+    },
+    facebookId: String,
 });
 
 userSchema.plugin(passportLocalMangoose);// it will provided additional authentication methods.

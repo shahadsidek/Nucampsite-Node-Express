@@ -12,11 +12,13 @@ var logger = require('morgan');
 //^WEEK3 - (6) requiring the passport
 const passport = require('passport');
 const config = require('./config');
+const uploadRouter = require('./routes/uploadRouter');
 //^ STEP (1)
 //* after copying the files to the project directory we require the modules tobe able to use them 
 const campsiteRouter = require('./routes/campsiteRouter');
 const promotionRouter = require('./routes/promotionRouter');
 const partnerRouter = require('./routes/partnerRouter');
+const favoriteRouter = require('./routes/favoriteRouter');
 
 //^ STEP (3) : Connecting the express with the mongodb server - add the url of th emongodb server
 // const url = 'mongodb://localhost:27017/nucampsite';
@@ -31,7 +33,7 @@ const connect = mongoose.connect(url, {
 });
 
 //^ STEP (4) :  handle the promise that is returned from the connect method
-connect.then(()=> console.log("Successfully Connected to the Server"), 
+connect.then(() => console.log("Successfully Connected to the Server"),
   err => console.log(err)
 );
 
@@ -42,6 +44,17 @@ const { addAbortSignal } = require('stream');
 
 var app = express();
 
+//^WEEK (4)  - 
+//catching everysinge path on our server 
+// Secure traffic only
+app.all('*', (req, res, next) => {
+  if (req.secure) {
+    return next();
+  } else {
+      console.log(`Redirecting to: https://${req.hostname}:${app.get('secPort')}${req.url}`);
+      res.redirect(301, `https://${req.hostname}:${app.get('secPort')}${req.url}`);
+  }
+});
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
@@ -72,10 +85,13 @@ app.use(express.urlencoded({ extended: false }));
 // app.use(passport.session());
 app.use(passport.initialize());
 
+app.use('/favorites', favoriteRouter);
+
+
 
 app.use('/', indexRouter);
 // WEEK 3 - this is created by express generator
-app.use('/users', usersRouter); 
+app.use('/users', usersRouter);
 
 
 // function auth(req, res, next){
@@ -141,14 +157,17 @@ app.use('/campsites', campsiteRouter);
 app.use('/promotions', promotionRouter);
 app.use('/partners', partnerRouter);
 
+app.use('/imageUpload', uploadRouter);
+
+
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   next(createError(404));
 });
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};

@@ -7,10 +7,11 @@ const router = express.Router();
 const passport = require('passport');
 //^ WK -3 - STEP (4) ~ require the authenticate module
 const authenticate = require('../authenticate');
+const cors = require('./cors');
 
 
 /* GET users listing. */
-router.get('/', authenticate.verifyUser, authenticate.verifyAdmin,function (req, res, next) {
+router.get('/', cors.corsWithOptions, authenticate.verifyUser, authenticate.verifyAdmin,function (req, res, next) {
     User.find()
     .then((users) => {
         res.statusCode = 200;
@@ -47,7 +48,7 @@ router.get('/', authenticate.verifyUser, authenticate.verifyAdmin,function (req,
 //         .catch(err => next(err));// for find one method if it returns a rejected promise
 // });
 
-router.post('/signup', (req, res) => {
+router.post('/signup', cors.corsWithOptions, (req, res) => {
     User.register(
         new User({username: req.body.username}),
         req.body.password,
@@ -89,7 +90,7 @@ router.post('/signup', (req, res) => {
 
 // checking if the user has logged in or not -- tracking for authenticated session
 //after adding passport.authenticate will enable it on this route, if there is no error with this middleware then it will go to the next middleware method 
-router.post('/login', passport.authenticate('local'), (req, res) => {
+router.post('/login', cors.corsWithOptions, passport.authenticate('local'), (req, res) => {
     //#region 
     //the passport authenticate will handle login in the user
     // if (!req.session.user) {// if there isnt a current session for this user- user not log in -- user must log 
@@ -139,7 +140,7 @@ router.post('/login', passport.authenticate('local'), (req, res) => {
 });
 
 
-router.get('/logout', (req, res, next) => {
+router.get('/logout', cors.corsWithOptions, (req, res, next) => {
     if (req.session) {// check if a session exists
         req.session.destroy();
         res.clearCookie('session-id');
@@ -148,6 +149,15 @@ router.get('/logout', (req, res, next) => {
         const err = new Error('You are not logged in!');
         err.status = 401;
         return next(err);
+    }
+});
+
+router.get('/facebook/token', passport.authenticate('facebook-token'), (req, res) => {
+    if (req.user) {
+        const token = authenticate.getToken({_id: req.user._id});
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.json({success: true, token: token, status: 'You are successfully logged in!'});
     }
 });
 
